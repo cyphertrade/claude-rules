@@ -17,11 +17,11 @@ paths:
 - NEVER use free mapper functions (`to_dto()`, `from_dto()`, `map_*()`) — use trait conversions only (see Mapping rules).
 - NEVER derive `serde::Serialize`/`serde::Deserialize` on DTOs unless explicitly required for internal persistence.
 - NEVER validate inside DTOs or flows — validation belongs in the transport layer only.
-- NEVER return raw library errors without `anyhow` context.
+- NEVER use `anyhow` — use typed service errors (`src/error.rs`). If existing code uses `anyhow`, refactor it to typed errors.
 - NEVER start custom HTTP/gRPC servers outside `ServiceContext`.
 - NEVER duplicate health/metrics endpoints — use SDK-provided ones.
 - NEVER create custom tracing/logging setups that conflict with `ServiceContext`.
-- MUST use `anyhow` for wrapping external library errors and `anyhow::Context` at failure boundaries.
+- MUST wrap external library errors into typed service errors via `From` impls — never use `anyhow`.
 - MUST place service errors in `src/error.rs`.
 - MUST use `validator` crate for all input validation (network models only).
 - MUST follow existing repo patterns over inventing new ones.
@@ -145,7 +145,7 @@ async fn main() {
 Priority order:
 1. `From<Source> for Target` (preferred)
 2. `.into()` at call sites
-3. `TryFrom` / `.try_into()` for fallible conversions — wrap with `anyhow::Context`, then map to service error
+3. `TryFrom` / `.try_into()` for fallible conversions — map errors to typed service errors via `From` impl
 4. `Into<ExternalType>` for your local type only when orphan rules prevent `From`
 
 Applies to all boundaries: network ↔ DTO, DTO ↔ data store, DTO ↔ external client models.
@@ -192,11 +192,12 @@ pub struct SomeRequest {
 - Flows may check logical constraints (e.g. "user not found") but not format validation.
 - If `validator` cannot express a rule, ask before inventing custom validation.
 
-### Error handling (`anyhow` mandatory)
+### Error handling (typed errors only — no `anyhow`)
 
-- Service errors live in `src/error.rs`.
-- Use `anyhow::Context` to wrap external library errors at failure boundaries.
-- Do not use ad-hoc string mapping or custom helpers when `anyhow` suffices.
+- Service errors live in `src/error.rs` as enums implementing `std::error::Error`.
+- Wrap external library errors via `From` impls on the service error enum.
+- If existing code uses `anyhow`, refactor it to typed service errors.
+- Do not use ad-hoc string mapping or custom helpers.
 
 ## Module placement decision tree
 

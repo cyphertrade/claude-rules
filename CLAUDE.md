@@ -9,7 +9,7 @@ Rust microservices monorepo using `yft-service-sdk` for shared infrastructure.
 - NEVER use mapper functions — use `From`/`TryFrom` trait conversions only
 - NEVER validate inside DTOs or flows — `validator` crate on network models only
 - NEVER bypass `ServiceContext` or `AppContext` when adding dependencies
-- MUST use `anyhow` for error context at library boundaries
+- NEVER use `anyhow` — use typed service errors (`src/error.rs`); if existing code uses `anyhow`, refactor it out
 - MUST resolve `{placeholder}` to concrete domain names — never use braces literally
 
 ## Architecture
